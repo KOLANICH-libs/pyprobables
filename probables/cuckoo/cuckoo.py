@@ -56,8 +56,10 @@ class CuckooFilter:
         expansion_rate: int = 2,
         auto_expand: bool = True,
         finger_size: int = 4,
-        filepath: Union[str, Path, None] = None,
+        blob: Union[Path, str, IOBase, mmap, ByteString] = None,
         hash_function: Union[SimpleHashT, None] = None,
+        *,
+        filepath: Union[Path, str, IOBase, mmap, ByteString] = None,
     ):
         """setup the data structure"""
         valid_prms = (
@@ -71,6 +73,11 @@ class CuckooFilter:
         if not valid_prms:
             msg = "CuckooFilter: capacity, bucket_size, and max_swaps must be an integer greater than 0"
             raise InitializationError(msg)
+
+        if filepath is not None:
+            warn("`filepath` argument is renamed into `blob` because now it accepts `bytes`, `mmap`s `bytearray`s!", DeprecationWarning)
+            blob = filepath
+
         self._bucket_size = int(bucket_size)
         self._cuckoo_capacity = int(capacity)
         self.__max_cuckoo_swaps = int(max_swaps)
@@ -86,12 +93,12 @@ class CuckooFilter:
         else:
             self.__hash_func = hash_function  # type: ignore
         self._inserted_elements = 0
-        if filepath is None:
+        if blob is None:
             self._buckets = list()  # type: ignore
             for _ in range(self.capacity):
                 self.buckets.append(list())
-        elif is_valid_file(filepath):
-            self._load(filepath)
+        elif isinstance(blob, (mmap, ByteString)) or is_valid_file(blob):
+            self._load(blob)
         else:
             msg = "CuckooFilter: failed to load provided file"
             raise InitializationError(msg)
@@ -135,17 +142,23 @@ class CuckooFilter:
 
     @classmethod
     def load_error_rate(
-        cls, error_rate: float, filepath: Union[str, Path], hash_function: Union[SimpleHashT, None] = None
+        cls, error_rate: float, blob: Union[str, Path], hash_function: Union[SimpleHashT, None] = None,
+        *,
+        filepath: Union[str, Path] = None
     ):
         """Initialize a previously exported Cuckoo Filter based on error rate
 
         Args:
             error_rate (float):
-            filepath (str): The path to the file to load or None if no file
+            blob (str): The path to the file to load or None if no file
             hash_function (function): Hashing strategy function to use `hf(key)`
         Returns:
             CuckooFilter: A Cuckoo Filter object"""
-        cku = CuckooFilter(filepath=filepath, hash_function=hash_function)
+        if filepath is not None:
+            warn("`filepath` argument is renamed into `blob` because now it accepts `bytes`, `mmap`s `bytearray`s!", DeprecationWarning)
+            blob = filepath
+
+        cku = CuckooFilter(blob=blob, hash_function=hash_function)
         cku._set_error_rate(error_rate)
         return cku
 
@@ -394,9 +407,9 @@ class CuckooFilter:
         # if we got here we have an error... we might need to know what is left
         return fingerprint
 
-    def _load(self, file: Union[Path, str, IOBase, mmap, bytes]) -> None:
+    def _load(self, file: Union[Path, str, IOBase, mmap, ByteString]) -> None:
         """load a cuckoo filter from file"""
-        if not isinstance(file, (IOBase, mmap, bytes)):
+        if not isinstance(file, (IOBase, mmap, ByteString)):
             file = Path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)

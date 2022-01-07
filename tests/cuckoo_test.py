@@ -291,7 +291,7 @@ class TestCuckooFilter(unittest.TestCase):
             md5_out = calc_file_md5(fobj.name)
             self.assertEqual(md5sum, md5_out)
 
-            ckf = CuckooFilter(filepath=fobj.name)
+            ckf = CuckooFilter(blob=fobj.name)
             for i in range(1000):
                 self.assertTrue(ckf.check(str(i)))
 
@@ -305,7 +305,7 @@ class TestCuckooFilter(unittest.TestCase):
 
         def runner():
             """runner"""
-            CuckooFilter(filepath="./test.cko")
+            CuckooFilter(blob="./test.cko")
 
         self.assertRaises(InitializationError, runner)
         try:
@@ -509,7 +509,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
             md5_out = calc_file_md5(fobj.name)
             self.assertEqual(md5sum, md5_out)
 
-            ckf = CuckooFilter.load_error_rate(error_rate=0.00001, filepath=fobj.name)
+            ckf = CuckooFilter.load_error_rate(error_rate=0.00001, blob=fobj.name)
             for i in range(1000):
                 self.assertTrue(ckf.check(str(i)))
 
